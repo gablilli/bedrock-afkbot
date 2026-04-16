@@ -461,8 +461,6 @@ function getReconnectDelay() {
 function sendBedrockChatMessage(message) {
   if (!bedrockClient || !botState.connected) return false;
   const safeMessage = String(message);
-  const isAuthCommand = /^\/(login|register)\b/i.test(safeMessage);
-  const safeLogMessage = isAuthCommand ? '[REDACTED_AUTH_COMMAND]' : safeMessage;
   try {
     bedrockClient.queue('text', {
       type: 'chat',
@@ -475,7 +473,7 @@ function sendBedrockChatMessage(message) {
     });
     return true;
   } catch (e) {
-    console.log(`[Bedrock] Chat send failed for message '${safeLogMessage}': ${e.name || 'Error'}: ${e.message}`);
+    console.log(`[Bedrock] Chat send failed: ${e.name || 'Error'}: ${e.message}`);
     return false;
   }
 }
