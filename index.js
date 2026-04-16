@@ -338,7 +338,7 @@ app.post('/reconnect', (req, res) => {
 app.get('/ping', (req, res) => res.send('pong'));
 
 app.get('/snapshot', (req, res) => {
-  if (isBedrockMode) {
+  if (isBedrockEnabled()) {
     return res.status(501).send('Snapshot non supportato in modalità Bedrock.');
   }
 
@@ -422,8 +422,17 @@ let bedrockClient = null;
 let activeIntervals = [];
 let reconnectTimeout = null;
 let isReconnecting = false;
-const serverProtocol = String(config.server?.protocol || 'java').toLowerCase();
-const isBedrockMode = serverProtocol === 'bedrock';
+function getServerProtocol() {
+  return String(config.server?.protocol || 'java').toLowerCase();
+}
+function isBedrockEnabled() {
+  return getServerProtocol() === 'bedrock';
+}
+function isChatLogEnabled() {
+  const chatLogSetting = config.utils?.['chat-log'];
+  if (typeof chatLogSetting === 'boolean') return chatLogSetting;
+  return Boolean(chatLogSetting?.enabled);
+}
 
 function clearAllIntervals() {
   console.log(`[Cleanup] Clearing ${activeIntervals.length} intervals`);
@@ -451,6 +460,7 @@ function getReconnectDelay() {
 
 function sendBedrockChatMessage(message) {
   if (!bedrockClient || !botState.connected) return;
+  const safeMessage = String(message);
   try {
     bedrockClient.queue('text', {
       type: 'chat',
@@ -459,10 +469,10 @@ function sendBedrockChatMessage(message) {
       xuid: '',
       platform_chat_id: '',
       filtered_message: '',
-      message: String(message)
+      message: safeMessage
     });
   } catch (e) {
-    console.log(`[Bedrock] Chat send failed: ${e.message}`);
+    console.log(`[Bedrock] Chat send failed for message '${safeMessage}': ${e.message}`);
   }
 }
 
@@ -537,10 +547,11 @@ function createBot() {
   }
 
   console.log(`[Bot] Creating bot instance...`);
-  console.log(`[Bot] Connecting to ${config.server.ip}:${config.server.port} using ${isBedrockMode ? 'bedrock' : 'java'} protocol`);
+  const serverProtocol = getServerProtocol();
+  console.log(`[Bot] Connecting to ${config.server.ip}:${config.server.port} using ${serverProtocol} protocol`);
 
   try {
-    if (isBedrockMode) {
+    if (isBedrockEnabled()) {
       bedrockClient = bedrockProtocol.createClient({
         host: config.server.ip,
         port: config.server.port,
@@ -581,7 +592,7 @@ function createBot() {
       });
 
       bedrockClient.on('text', (packet) => {
-        if (!config.utils['chat-log']) return;
+        if (!isChatLogEnabled()) return;
         const source = packet?.source_name ? `${packet.source_name}: ` : '';
         const message = packet?.message ?? '';
         if (message) {
@@ -1080,7 +1091,7 @@ rl.on('line', (line) => {
   }
 
   const trimmed = line.trim();
-  if (isBedrockMode) {
+  if (isBedrockEnabled()) {
     if (trimmed === 'status') {
       console.log(`Connected: ${botState.connected}, Uptime: ${formatUptime(Math.floor((Date.now() - botState.startTime) / 1000))}`);
     } else if (trimmed === 'reconnect') {
@@ -1207,7 +1218,7 @@ console.log('='.repeat(50));
 console.log('  Minecraft AFK Bot v2.3 - Bug Fix Edition');
 console.log('='.repeat(50));
 console.log(`Server: ${config.server.ip}:${config.server.port}`);
-console.log(`Protocol: ${serverProtocol}`);
+console.log(`Protocol: ${getServerProtocol()}`);
 console.log(`Version: ${config.server.version}`);
 console.log(`Auto-Reconnect: ${config.utils['auto-reconnect'] ? 'Enabled' : 'Disabled'}`);
 console.log('='.repeat(50));
