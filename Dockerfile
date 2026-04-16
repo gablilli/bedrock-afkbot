@@ -17,11 +17,11 @@ WORKDIR /app
 
 COPY package*.json ./
 
-# --ignore-scripts per evitare compilazione nativa e vedere altri errori
-RUN npm install --ignore-scripts 2>&1 || true
+# Forza installazione canvas con compilazione nativa esplicita
+RUN npm install --build-from-source canvas
 
-# Ora prova la compilazione nativa separatamente
-RUN npm rebuild canvas --build-from-source 2>&1 || echo "Canvas rebuild failed"
+# Installa il resto
+RUN npm install
 
 COPY . .
 
