@@ -459,8 +459,10 @@ function getReconnectDelay() {
 }
 
 function sendBedrockChatMessage(message) {
-  if (!bedrockClient || !botState.connected) return;
+  if (!bedrockClient || !botState.connected) return false;
   const safeMessage = String(message);
+  const isAuthCommand = /^\/(login|register)\b/i.test(safeMessage);
+  const safeLogMessage = isAuthCommand ? '[REDACTED_AUTH_COMMAND]' : safeMessage;
   try {
     bedrockClient.queue('text', {
       type: 'chat',
@@ -471,8 +473,10 @@ function sendBedrockChatMessage(message) {
       filtered_message: '',
       message: safeMessage
     });
+    return true;
   } catch (e) {
-    console.log(`[Bedrock] Chat send failed for message '${safeMessage}': ${e.message}`);
+    console.log(`[Bedrock] Chat send failed for message '${safeLogMessage}': ${e.name || 'Error'}: ${e.message}`);
+    return false;
   }
 }
 
@@ -508,11 +512,12 @@ function initializeBedrockModules() {
   }
 
   if (config.utils['anti-afk']?.enabled) {
+    const antiAfkInterval = Number(config.utils['anti-afk'].interval) > 0 ? Number(config.utils['anti-afk'].interval) : 30000;
     addInterval(() => {
       if (!botState.connected) return;
       sendBedrockChatMessage('.');
       botState.lastActivity = Date.now();
-    }, 30000);
+    }, antiAfkInterval);
   }
 
   console.log('[Bedrock] Compatible modules initialized (chat/auth/anti-afk).');
@@ -552,25 +557,31 @@ function createBot() {
 
   try {
     if (isBedrockEnabled()) {
-      bedrockClient = bedrockProtocol.createClient({
+      const bedrockConnectTimeout = Number(config.server?.['connect-timeout']) > 0 ? Number(config.server['connect-timeout']) : 120000;
+      const bedrockClientOptions = {
         host: config.server.ip,
         port: config.server.port,
-        version: config.server.version || undefined,
         username: config['bot-account'].username,
         offline: config['bot-account'].type !== 'microsoft',
-        connectTimeout: 120000,
+        connectTimeout: bedrockConnectTimeout,
         conLog: null
-      });
+      };
+      if (config.server.version) {
+        bedrockClientOptions.version = config.server.version;
+      }
+      bedrockClient = bedrockProtocol.createClient(bedrockClientOptions);
 
       const connectionTimeout = setTimeout(() => {
         if (!botState.connected) {
           console.log('[Bedrock] Connection timeout - no spawn received');
           scheduleReconnect();
         }
-      }, 60000);
+      }, bedrockConnectTimeout);
 
+      let bedrockConnectedMarked = false;
       const markBedrockConnected = () => {
-        if (botState.connected) return;
+        if (bedrockConnectedMarked || botState.connected) return;
+        bedrockConnectedMarked = true;
         clearTimeout(connectionTimeout);
         botState.connected = true;
         botState.lastActivity = Date.now();
