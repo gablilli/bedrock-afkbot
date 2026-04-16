@@ -1,6 +1,5 @@
 FROM node:22-bookworm
 
-# Dipendenze di sistema per canvas (richieste da prismarine-viewer)
 RUN apt-get update && apt-get install -y \
     build-essential \
     python3 \
@@ -18,8 +17,11 @@ WORKDIR /app
 
 COPY package*.json ./
 
-# Un solo npm install — gestisce tutto, incluso canvas via prismarine-viewer
-RUN npm install
+# --ignore-scripts per evitare compilazione nativa e vedere altri errori
+RUN npm install --ignore-scripts 2>&1 || true
+
+# Ora prova la compilazione nativa separatamente
+RUN npm rebuild canvas --build-from-source 2>&1 || echo "Canvas rebuild failed"
 
 COPY . .
 
