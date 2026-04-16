@@ -2,6 +2,7 @@ FROM node:22-bookworm
 
 RUN apt-get update && apt-get install -y \
     build-essential \
+    cmake \
     python3 \
     pkg-config \
     libcairo2-dev \
@@ -17,10 +18,6 @@ WORKDIR /app
 
 COPY package*.json ./
 
-# Forza installazione canvas con compilazione nativa esplicita
-RUN npm install --build-from-source canvas
-
-# Installa il resto
 RUN npm install
 
 COPY . .
