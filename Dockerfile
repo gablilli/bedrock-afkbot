@@ -1,6 +1,6 @@
 FROM node:22-bookworm
 
-# Dipendenze di sistema per canvas (modulo nativo)
+# Dipendenze di sistema per canvas (richieste da prismarine-viewer)
 RUN apt-get update && apt-get install -y \
     build-essential \
     python3 \
@@ -18,10 +18,7 @@ WORKDIR /app
 
 COPY package*.json ./
 
-# Prima installa canvas esplicitamente con compilazione nativa
-RUN npm install canvas
-
-# Poi installa il resto
+# Un solo npm install — gestisce tutto, incluso canvas via prismarine-viewer
 RUN npm install
 
 COPY . .
