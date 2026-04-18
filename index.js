@@ -626,7 +626,7 @@ function createBot() {
       });
 
       bedrockClient.on('kick', (reason) => {
-        console.log(`[Bedrock] Kicked: ${reason || 'Unknown reason'}`);
+        console.log(`[Bedrock] Kicked:`, JSON.stringify(reason));
         botState.connected = false;
         viewerReady = false;
         botState.errors.push({ type: 'kicked', reason, time: Date.now() });
