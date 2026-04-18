@@ -7,9 +7,9 @@
   },
   "server": {
     "protocol": "bedrock",
-    "ip": "testbot-x6ha.aternos.me",
-    "port": 55200,
-    "version": "1.26.0"
+    "ip": "thijngamer011.aternos.me",
+    "port": 48412,
+    "version": "26.13"
   },
   "position": {
     "enabled": true,
