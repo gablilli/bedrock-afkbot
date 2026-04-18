@@ -611,7 +611,7 @@ function createBot() {
       });
 
       bedrockClient.on('close', (reason) => {
-        console.log(`[Bedrock] Disconnected: ${reason || 'Unknown reason'}`);
+        console.log(`[Bedrock] Kicked:`, JSON.stringify(reason));
         botState.connected = false;
         viewerReady = false;
         clearAllIntervals();
